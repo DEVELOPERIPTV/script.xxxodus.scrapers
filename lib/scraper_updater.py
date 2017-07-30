@@ -11,7 +11,7 @@ def check(scraper):
 
         if ( not disable_check == 'true' ): 
             scraperFile = xbmc.translatePath(os.path.join('special://home/addons/script.xxxodus.scrapers', 'lib/scrapers/%s.py' % scraper.lower()))
-            scraperLink = 'https://raw.githubusercontent.com/xibalba10/script.xxxodus.scrapers/master/lib/scrapers/%s.py' % scraper.lower()
+            scraperLink = 'https://raw.githubusercontent.com/echocoderxbmc/script.xxxodus.scrapers/master/lib/scrapers/%s.py' % scraper.lower()
             r = cache.get(client.request, 4, scraperLink)
 
             if len(r)>1:
