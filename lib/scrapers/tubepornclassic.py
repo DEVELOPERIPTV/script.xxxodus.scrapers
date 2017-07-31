@@ -30,11 +30,14 @@ def menu():
     try:
         url = urlparse.urljoin(base_domain,'categories/')
         c = client.request(url)
-        r = dom_parser2.parse_dom(c, 'li', {'class': 'list-item'})
-        r = [(dom_parser2.parse_dom(i, 'a', req=['href','title']), \
-              dom_parser2.parse_dom(i, 'span', {'class': 'list-item__info'})) \
+        r = dom_parser2.parse_dom(c, 'a')
+        r = [i for i in r if '<div class="videos">' in i.content]
+        r = [(i.attrs['href'], \
+              i.attrs['title'], \
+              dom_parser2.parse_dom(i, 'img', req='data-original'), \
+              dom_parser2.parse_dom(i, 'div', {'class': 'videos'})) \
               for i in r if i]
-        r = [(i[0][0].attrs['href'], i[0][0].attrs['title'], i[1][0].content if i[1] else 'Unknown') for i in r]
+        r = [('http://www.tubepornclassic.com/search/%s/' % i[1].replace(' ','%20').lower(), i[1], i[3][0].content.split(' ')[0], i[2][0].attrs['data-original']) for i in r if i]
         if ( not r ):
             log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(c)), log_utils.LOGERROR)
             kodi.notify(msg='Scraping Error: Info Added To Log File', duration=6000, sound=True)
@@ -52,7 +55,7 @@ def menu():
             name = name.title() + ' - [ %s ]' % i[2]
             icon = xbmc.translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/icon.png' % filename))
             fanarts = xbmc.translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
-            dirlst.append({'name': name, 'url': i[0], 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
+            dirlst.append({'name': name, 'url': i[0], 'mode': content_mode, 'icon': i[3], 'fanart': fanarts, 'folder': True})
         except Exception as e:
             log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
     
@@ -75,6 +78,7 @@ def content(url,searched=False):
         if ( not r ) and ( not searched ):
             log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(c)), log_utils.LOGERROR)
             kodi.notify(msg='Scraping Error: Info Added To Log File', duration=6000, sound=True)
+            quit()
     except Exception as e:
         if ( not searched ):
             log_utils.log('Fatal Error in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
