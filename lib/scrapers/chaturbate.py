@@ -80,7 +80,7 @@ def content(url,searched=False):
         dom_parser2.parse_dom(i[0], 'span'), \
         i[2][0].content, \
         i[1][0].attrs['src'], \
-        i[3][0].content, \
+        i[3][0].content if i[3] else 'Unknown', \
         i[4][0].content, \
         i[5][0].content, \
         ) for i in r]
