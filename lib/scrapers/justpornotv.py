@@ -58,14 +58,17 @@ def menu():
             quit()
             
 @utils.url_dispatcher.register('%s' % content_mode,['url'],['searched'])
-def content(url,searched=None):
-
-    pattern = r'''%s\=['"]+([^'"]+)'''
+def content(url,searched=False):
 
     try:
         c = client.request(url)
-        r = dom_parser2.parse_dom(c, 'li')
-        r = [i.content for i in r if 'thumb-item-desc' in i.content]
+        r = dom_parser2.parse_dom(c, 'div', {'class': ['large-4','medium-4','small-6','columns']})
+        r = [(dom_parser2.parse_dom(i, 'a', req=['href','title']), \
+              dom_parser2.parse_dom(i, 'span', {'class': 'time'}), \
+              dom_parser2.parse_dom(i, 'img', req='data-src')) \
+              for i in r if i]
+        r = [(urlparse.urljoin(base_domain,i[0][0].attrs['href']), i[0][0].attrs['title'], i[1][0].content, \
+            i[2][0].attrs['data-src'] if i[2][0].attrs['data-src'].startswith('http') else 'https:' + i[2][0].attrs['data-src']) for i in r]
         if ( not r ) and ( not searched ):
             log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(c)), log_utils.LOGERROR)
             kodi.notify(msg='Scraping Error: Info Added To Log File', duration=6000, sound=True)
@@ -80,23 +83,26 @@ def content(url,searched=None):
     
     for i in r:
         try:
-            name = re.findall(pattern % 'title', i)[0]
-            name = kodi.sortX(name.encode('utf-8'))
+            name = kodi.sortX(i[1].encode('utf-8'))
+            name = name.title() + ' - [ %s ]' % i[2]
             if searched: description = 'Result provided by %s' % base_name.title()
             else: description = name
-            url  = re.findall(pattern % 'href', i)[0]
-            iconimg = re.findall(pattern % 'src', i)[0]
-            iconimg = 'http:%s' % iconimg if iconimg.startswith('//') else iconimg
+            content_url = i[0] + '|SPLIT|%s' % base_name
             fanarts = xbmc.translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
-            dirlst.append({'name': name, 'url': urlparse.urljoin(base_domain,url + '|SPLIT|%s' % base_name), 'mode': player_mode, 'icon': iconimg, 'fanart': fanarts, 'description': description, 'folder': False})
+            dirlst.append({'name': name, 'url': content_url, 'mode': player_mode, 'icon': i[3], 'fanart': fanarts, 'description': description, 'folder': False})
         except Exception as e:
-            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[0].title(),base_name.title(),str(e)), log_utils.LOGERROR)
     
-    if searched: 
-        if dirlst: buildDirectory(dirlst, stopend=True, isVideo = True, isDownloadable = True)
-        return str(len(r))
-    else: 
-        if dirlst: buildDirectory(dirlst, isVideo = True, isDownloadable = True)
-        else:
+    if dirlst: buildDirectory(dirlst, stopend=True, isVideo = True, isDownloadable = True)
+    else:
+        if (not searched):
             kodi.notify(msg='No Content Found')
             quit()
+        
+    if searched: return str(len(r))
+    
+    if not searched:
+        search_pattern = '''<a\s*href=['"]([^'"]+)['"]\s*title=['"]Next\s*Page['"]>Next<\/a>'''
+        parse = base_domain
+
+        helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)

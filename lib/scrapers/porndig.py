@@ -16,7 +16,7 @@ menu_mode    = 246
 content_mode = 247
 player_mode  = 801
 
-search_tag   = 1
+search_tag   = 0
 search_base  = urlparse.urljoin(base_domain,'/amateur/search/%s')
 
 @utils.url_dispatcher.register('%s' % menu_mode)
